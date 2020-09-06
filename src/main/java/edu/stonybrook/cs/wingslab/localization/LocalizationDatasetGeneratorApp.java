@@ -44,6 +44,7 @@ public class LocalizationDatasetGeneratorApp implements Runnable {
     // maximum power value(dB) an PU can get
     private final double txHeight;
     // height of SU the class creates
+    private final boolean changingSss;
     // progress bar length
     private final static int progressBarLength = 50;
 
@@ -60,12 +61,13 @@ public class LocalizationDatasetGeneratorApp implements Runnable {
      * @param maxTxNum maximum number of TXs for each sample
      * @param minTxPower minimum power value of TXs for each sample
      * @param maxTxPower maximum power value of TXs for each sample
-     * @param txheight height of TXs*/
+     * @param txHeight height of TXs
+     * @param changingSss whether sensors' location is changing*/
     public LocalizationDatasetGeneratorApp(int sampleCount, String fileAppendix,
                                            ConcurrentHashMap<Integer, HashMap<String, Double>> resultDict,
                                            PropagationModel propagationModel, SpectrumSensor[] sss, Shape shape,
-                                           int cellSize, int minTxNum, int maxTxNum, double txheight,
-                                           double minTxPower, double maxTxPower){
+                                           int cellSize, int minTxNum, int maxTxNum, double txHeight,
+                                           double minTxPower, double maxTxPower, boolean changingSss){
         super();
         this.sampleCount = sampleCount;
         this.threadId = LocalizationDatasetGeneratorApp.threadNum++;
@@ -79,7 +81,8 @@ public class LocalizationDatasetGeneratorApp implements Runnable {
         this.maxTxNum = maxTxNum;
         this.minTxPower = minTxPower;
         this.maxTXPower = maxTxPower;
-        this.txHeight = txheight;
+        this.txHeight = txHeight;
+        this.changingSss = changingSss;
         //creating files and directory(if needed)
         Path dataPath = Paths.get(LocalizationDatasetGeneratorApp.DATA_DIR);
         if (!Files.isDirectory(dataPath)){
@@ -99,13 +102,16 @@ public class LocalizationDatasetGeneratorApp implements Runnable {
         File localizeFile = new File(LocalizationDatasetGeneratorApp.DATA_DIR +
                 "/localization" + fileNameFormat);  //
         try(PrintWriter localizeWriter = new PrintWriter(localizeFile)) {
+            long beginTime = System.currentTimeMillis();
             for (int sample = 1; sample < this.sampleCount + 1; sample++) {
                 try {
-                    localizeWriter.println(new LocalizationDatasetGenerator(createTXs(), this.sss,
-                            this.shape, this.propagationModel, this.cellSize));
+                    localizeWriter.println(new LocalizationDatasetGenerator(createTXs(),
+                            changingSss ? createSSs() : this.sss,
+                            this.shape, this.propagationModel, this.cellSize, changingSss));
                 } catch (RuntimeException e) {
                     e.printStackTrace();
                 }
+                System.out.print(progressBar(sample, System.currentTimeMillis() - beginTime));
             }
 
         } catch (FileNotFoundException e) {
@@ -154,6 +160,19 @@ public class LocalizationDatasetGeneratorApp implements Runnable {
         return txs;
     }
 
+    //creating random sensors
+    private SpectrumSensor[] createSSs(){
+        int n = this.sss.length;
+        Point[] sssPoint = this.shape.points(n);
+        double height = this.sss[0].getRx().getElement().getHeight();
+        double cost = this.sss[0].getCost();
+        double std = this.sss[0].getStd();
+        SpectrumSensor[] sss = new SpectrumSensor[n];
+        for (int i = 0; i < n; i++){
+            sss[i] = new SpectrumSensor(new RX(new Element(sssPoint[i], height)), cost, std);
+        }
+        return sss;
+    }
     // **************************** Setter & Getter ******************************
     public static String getDataDir() { return DATA_DIR; }
 

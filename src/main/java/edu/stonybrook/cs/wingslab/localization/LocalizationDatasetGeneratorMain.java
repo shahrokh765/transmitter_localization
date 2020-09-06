@@ -34,7 +34,7 @@ public class LocalizationDatasetGeneratorMain {
 
         // ********************************** Propagation Model **********************************
         String propagationModel = "log";                // 'splat' or 'log'
-        double alpha = 3;                               // propagation model coeff.  2.0 for 4km, 3 for 1km, 4.9 for 200m.
+        double alpha = 2;                               // propagation model coeff.  2.0 for 4km, 3 for 1km, 4.9 for 200m.
         // Applicable for log
         boolean noise = false;                           // std in dB.
         double std =  1.0;                              // Applicable for log
@@ -52,12 +52,13 @@ public class LocalizationDatasetGeneratorMain {
         double maxTxPower = 0.0;                      // in dB. PU's power do not change for static PUs case
 
         // ********************************** SSs **********************************
-        int number_sensors = 1600;
+        int number_sensors = 400;
+        boolean changingSss = true;
 
         // ********************************** General **********************************
         int number_of_process = 1;                      // number of process
         //INTERPOLATION, CONSERVATIVE = False, False
-        int n_samples = 100;                            // number of samples
+        int n_samples = 50000;                            // number of samples
 
         long beginTime = System.currentTimeMillis();
         String sensorPath = String.format("%s%s/%d/sensors.txt", SENSOR_PATH, fieldShape.toString(),
@@ -120,7 +121,7 @@ public class LocalizationDatasetGeneratorMain {
                 throw new IllegalArgumentException("Shape is not valid.");
             threads[i] = new Thread(new LocalizationDatasetGeneratorApp(threadSampleNum[i], Integer.toString(fileAppendix),
                     resultDict, threadPM, threadCopySss, threadShape, cellSize,
-                    minTxNUmber, maxTxNumber, txHeight, minTxPower, maxTxPower));
+                    minTxNUmber, maxTxNumber, txHeight, minTxPower, maxTxPower, changingSss));
             threads[i].start();
         }
 
@@ -160,9 +161,10 @@ public class LocalizationDatasetGeneratorMain {
                         maxTxNumber) + "TXs" + "_" +
                 number_sensors + "sensor_" +
                 fieldShape + "grid_" + propagationModel +
+                (propagationModel.toLowerCase().contains("log") ?
+                        "_alpha" + alpha : "") +
                 (noise && propagationModel.contains("log") ?
-                        "_noisy_std" + std :
-                        "")
+                        "_noisy_std" + std:"")
                 + date + ".txt";
 
         mergeFiles(LocalizationDatasetGeneratorApp.getDataDir(), "localization_" + fileAppendix, // merging pu related files
