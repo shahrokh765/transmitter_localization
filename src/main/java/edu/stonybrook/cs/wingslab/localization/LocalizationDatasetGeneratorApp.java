@@ -47,6 +47,7 @@ public class LocalizationDatasetGeneratorApp implements Runnable {
     private final boolean changingSss;
     // progress bar length
     private final static int progressBarLength = 50;
+    private final double noiseFLoor;
 
     /**
      * LocalizationDatasetGeneratorApp constructor.
@@ -62,12 +63,14 @@ public class LocalizationDatasetGeneratorApp implements Runnable {
      * @param minTxPower minimum power value of TXs for each sample
      * @param maxTxPower maximum power value of TXs for each sample
      * @param txHeight height of TXs
-     * @param changingSss whether sensors' location is changing*/
+     * @param changingSss whether sensors' location is changing
+     * @param noiseFloor noise floor*/
     public LocalizationDatasetGeneratorApp(int sampleCount, String fileAppendix,
                                            ConcurrentHashMap<Integer, HashMap<String, Double>> resultDict,
                                            PropagationModel propagationModel, SpectrumSensor[] sss, Shape shape,
                                            int cellSize, int minTxNum, int maxTxNum, double txHeight,
-                                           double minTxPower, double maxTxPower, boolean changingSss){
+                                           double minTxPower, double maxTxPower, boolean changingSss,
+                                           double noiseFloor){
         super();
         this.sampleCount = sampleCount;
         this.threadId = LocalizationDatasetGeneratorApp.threadNum++;
@@ -83,6 +86,7 @@ public class LocalizationDatasetGeneratorApp implements Runnable {
         this.maxTXPower = maxTxPower;
         this.txHeight = txHeight;
         this.changingSss = changingSss;
+        this.noiseFLoor = noiseFloor;
         //creating files and directory(if needed)
         Path dataPath = Paths.get(LocalizationDatasetGeneratorApp.DATA_DIR);
         if (!Files.isDirectory(dataPath)){
@@ -107,7 +111,7 @@ public class LocalizationDatasetGeneratorApp implements Runnable {
                 try {
                     localizeWriter.println(new LocalizationDatasetGenerator(createTXs(),
                             changingSss ? createSSs() : this.sss,
-                            this.shape, this.propagationModel, this.cellSize, changingSss));
+                            this.shape, this.propagationModel, this.cellSize, changingSss, noiseFLoor));
                 } catch (RuntimeException e) {
                     e.printStackTrace();
                 }
@@ -152,11 +156,12 @@ public class LocalizationDatasetGeneratorApp implements Runnable {
     // creating random sus
     private TX[] createTXs(){
         int txsNum = ThreadLocalRandom.current().nextInt(this.minTxNum, this.maxTxNum + 1);
+        double[] fixedPowers = {-15.0, -10.0, -5.0, 0.0};
         Point[] susPoint = this.shape.points(txsNum);
         TX[] txs = new TX[txsNum];
         for (int i = 0; i < txsNum; i++)
-            txs[i] = new TX(new Element(susPoint[i], this.txHeight),
-                    ThreadLocalRandom.current().nextDouble(this.minTxPower, this.maxTXPower + Double.MIN_VALUE));
+            txs[i] = new TX(new Element(susPoint[i], this.txHeight), fixedPowers[i]);
+//                    ThreadLocalRandom.current().nextDouble(this.minTxPower, this.maxTXPower + Double.MIN_VALUE));
         return txs;
     }
 

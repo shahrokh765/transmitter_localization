@@ -28,37 +28,37 @@ public class LocalizationDatasetGeneratorMain {
         // ********************************** Field Parameters **********************************
         double txHeight = 30;                          // in meter
         double rxHeight =  15;                         // in meter
-        Shape fieldShape = new Square(1000);       // Square and Rectangle are supported for now.
+        Shape fieldShape = new Square(100);       // Square and Rectangle are supported for now.
         // in meter and originated in (0, 0). 1000 for log, 100 for splat
-        int cellSize = 1;                               // in meter
+        int cellSize = 10;                               // in meter
 
         // ********************************** Propagation Model **********************************
         String propagationModel = "log";                // 'splat' or 'log'
-        double alpha = 2;                               // propagation model coeff.  2.0 for 4km, 3 for 1km, 4.9 for 200m.
+        double alpha = 3.5;                               // propagation model coeff.  2.0 for 4km, 3 for 1km, 4.9 for 200m.
         // Applicable for log
-        boolean noise = false;                           // std in dB.
+        boolean noise = true;                           // std in dB.
         double std =  1.0;                              // Applicable for log
         GeographicPoint splat_left_upper_ref = new GeographicPoint(40.800595,
                 73.107507);                         // ISLIP lat and lon
         double noiseFloor = -90;                       // noise floor
         String splatFileName = "pl_map_array.json";            // splat saved file name
 
-        // ********************************** PUs&PURs **********************************
-        int minTxNUmber = 1;                        // min number of pus all over the field
-        int maxTxNumber = 1;                        // max number of pus all over the field;
+        // ********************************** TXs **********************************
+        int minTxNUmber = 0;                        // min number of pus all over the field
+        int maxTxNumber = 4;                        // max number of pus all over the field;
         // i.e. # of pus is different for each sample.
         // min=max means # of pus doesn't change
-        double minTxPower = -30.0;
+        double minTxPower = -15.0;
         double maxTxPower = 0.0;                      // in dB. PU's power do not change for static PUs case
 
         // ********************************** SSs **********************************
-        int number_sensors = 400;
-        boolean changingSss = true;
+        int number_sensors = 900;
+        boolean changingSss = false;
 
         // ********************************** General **********************************
-        int number_of_process = 1;                      // number of process
+        int number_of_process = 5;                      // number of process
         //INTERPOLATION, CONSERVATIVE = False, False
-        int n_samples = 50000;                            // number of samples
+        int n_samples = 150000;                            // number of samples
 
         long beginTime = System.currentTimeMillis();
         String sensorPath = String.format("%s%s/%d/sensors.txt", SENSOR_PATH, fieldShape.toString(),
@@ -121,7 +121,7 @@ public class LocalizationDatasetGeneratorMain {
                 throw new IllegalArgumentException("Shape is not valid.");
             threads[i] = new Thread(new LocalizationDatasetGeneratorApp(threadSampleNum[i], Integer.toString(fileAppendix),
                     resultDict, threadPM, threadCopySss, threadShape, cellSize,
-                    minTxNUmber, maxTxNumber, txHeight, minTxPower, maxTxPower, changingSss));
+                    minTxNUmber, maxTxNumber, txHeight, minTxPower, maxTxPower, changingSss, noiseFloor));
             threads[i].start();
         }
 
